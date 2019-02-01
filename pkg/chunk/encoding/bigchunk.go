@@ -17,7 +17,7 @@ var errOutOfBounds = errors.New("out of bounds")
 // bigchunk is a set of prometheus/tsdb chunks.  It grows over time and has no
 // upperbound on number of samples it can contain.
 type bigchunk struct {
-	chunks []chunkenc.Chunk
+	chunks []*chunkenc.XORChunk
 	starts []int64
 	ends   []int64
 
@@ -54,7 +54,7 @@ func (b *bigchunk) addNextChunk(start model.Time) error {
 		if err != nil {
 			return err
 		}
-		b.chunks[l-1] = compacted
+		b.chunks[l-1] = compacted.(*chunkenc.XORChunk)
 	}
 
 	chunk := chunkenc.NewXORChunk()
@@ -101,7 +101,7 @@ func (b *bigchunk) UnmarshalFromBuf(buf []byte) error {
 		return err
 	}
 
-	b.chunks = make([]chunkenc.Chunk, 0, numChunks)
+	b.chunks = make([]*chunkenc.XORChunk, 0, numChunks)
 	for i := uint16(0); i < numChunks; i++ {
 		chunkLen, err := r.ReadUint16()
 		if err != nil {
@@ -123,7 +123,7 @@ func (b *bigchunk) UnmarshalFromBuf(buf []byte) error {
 			return err
 		}
 
-		b.chunks = append(b.chunks, chunk)
+		b.chunks = append(b.chunks, chunk.(*chunkenc.XORChunk))
 		b.starts = append(b.starts, start)
 		b.ends = append(b.ends, end)
 	}
